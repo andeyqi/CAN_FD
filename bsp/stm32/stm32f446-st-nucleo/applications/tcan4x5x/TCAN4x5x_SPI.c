@@ -39,6 +39,14 @@
 
 #include "TCAN4x5x_SPI.h"
 
+#include <rtthread.h>
+#include <board.h>
+#include <drv_spi.h>
+#include <rtdevice.h>
+#include <rthw.h>
+extern struct rt_spi_device *spi_dev_com;
+
+
 /*
  * @brief Single word write
  *
@@ -53,6 +61,21 @@ AHB_WRITE_32(uint16_t address, uint32_t data)
     AHB_WRITE_BURST_WRITE(data);
     AHB_WRITE_BURST_END();
 #endif
+	uint8_t sendsize;
+	static uint8_t sendbuff[8];
+	static uint8_t recvbuff[8] = {0};
+	sendbuff[0] = AHB_WRITE_OPCODE;
+	sendbuff[1] = (address&0xff00) >> 8;;
+	sendbuff[2] = address&0xff;
+	sendbuff[3] = 1;
+	sendbuff[4] = (data&0xff000000)>>24;
+	sendbuff[5] = (data&0xff0000)>>16;
+	sendbuff[6] = (data&0xff00)>>8;
+	sendbuff[7] = data&0xff;
+	
+	sendsize = rt_spi_transfer(spi_dev_com,(void *)sendbuff,recvbuff,8);
+	if(sendsize != 8)
+		rt_kprintf("SPI BUS send data len is %d\n",sendsize);
 }
 
 
@@ -75,7 +98,26 @@ AHB_READ_32(uint16_t address)
 
     return returnData;
 #endif
-return 0;	
+	uint32_t returnData;
+	uint8_t sendsize;
+	static uint8_t sendbuff[8];
+	static uint8_t recvbuff[8] = {0};
+	sendbuff[0] = AHB_READ_OPCODE;
+	sendbuff[1] = (address&0xff00) >> 8;
+	sendbuff[2] = address&0xff;
+	sendbuff[3] = 1;
+	sendbuff[4] = 0x00;
+	sendbuff[5] = 0x00;
+	sendbuff[6] = 0x00;
+	sendbuff[7] = 0x00;
+	
+	sendsize = rt_spi_transfer(spi_dev_com,(void *)sendbuff,recvbuff,8);
+	//rt_kprintf("SPI BUS send data len is %d\n",sendsize);
+	if(sendsize != 8)
+		rt_kprintf("SPI BUS send data error len is %d\n",sendsize);
+    returnData = (((uint32_t)recvbuff[4]) << 24) | (((uint32_t)recvbuff[5] << 16)) | (((uint32_t)recvbuff[6]) << 8) | recvbuff[7];
+
+	return returnData;
 }
 
 
