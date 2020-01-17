@@ -75,6 +75,7 @@ AHB_READ_32(uint16_t address)
 
     return returnData;
 #endif
+return 0;	
 }
 
 
@@ -221,6 +222,7 @@ AHB_READ_BURST_READ(void)
     returnData = (((uint32_t)readData) << 24) | (((uint32_t)readData1 << 16)) | (((uint32_t)readData2) << 8) | readData3;
     return returnData;
 #endif
+return 0;
 }
 
 

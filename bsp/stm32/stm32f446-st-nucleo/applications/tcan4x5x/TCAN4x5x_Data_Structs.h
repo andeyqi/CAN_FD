@@ -43,7 +43,9 @@
 //                   Starting with the MCAN Data Structures
 // ~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 
-
+#if defined ( __CC_ARM   )
+    #pragma anon_unions
+#endif
 
 /**
  * @brief Used to setup the data timing parameters of the MCAN module
