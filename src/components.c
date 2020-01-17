@@ -239,6 +239,9 @@ int rtthread_startup(void)
     /* create init_thread */
     rt_application_init();
 
+	/* create can thread */
+	extern int thread_tcan4550_init(void);
+	thread_tcan4550_init();
     /* timer thread initialization */
     rt_system_timer_thread_init();
 
