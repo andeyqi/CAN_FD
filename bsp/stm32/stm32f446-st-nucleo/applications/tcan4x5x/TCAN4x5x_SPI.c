@@ -44,7 +44,16 @@
 #include <drv_spi.h>
 #include <rtdevice.h>
 #include <rthw.h>
+#include <string.h>
 extern struct rt_spi_device *spi_dev_com;
+
+static  uint8_t burst_write_send_buff[32] = {0};
+static  uint8_t burst_write_recv_buff[32] = {0};
+static  uint8_t burst_write_index = 0;
+
+static  uint8_t burst_read_send_buff[32] = {0};
+static  uint8_t burst_read_recv_buff[32] = {0};
+static  uint8_t burst_read_index = 0;
 
 
 /*
@@ -150,6 +159,12 @@ AHB_WRITE_BURST_START(uint16_t address, uint8_t words)
     // Send the number of words to read
     EUSCI_B_SPI_transmitData(SPI_HW_ADDR, words);
 #endif
+	burst_write_index = 0;
+
+	burst_write_send_buff[burst_write_index++] = AHB_WRITE_OPCODE;
+	burst_write_send_buff[burst_write_index++] = (address&0xff) >> 8;
+	burst_write_send_buff[burst_write_index++] = (address&0xff);
+	burst_write_send_buff[burst_write_index++] = words;
 }
 
 
@@ -174,6 +189,10 @@ AHB_WRITE_BURST_WRITE(uint32_t data)
     WAIT_FOR_TRANSMIT;
     EUSCI_B_SPI_transmitData(SPI_HW_ADDR, HWREG8(&data));
 #endif
+	burst_write_send_buff[burst_write_index++] = (data&0xff000000)>>24;
+	burst_write_send_buff[burst_write_index++] = (data&0xff0000)>>16;
+	burst_write_send_buff[burst_write_index++] = (data&0xff00)>>8;
+	burst_write_send_buff[burst_write_index++] = data&0xff;
 }
 
 
@@ -190,6 +209,14 @@ AHB_WRITE_BURST_END(void)
     WAIT_FOR_IDLE;
     GPIO_setOutputHighOnPin(SPI_CS_GPIO_PORT, SPI_CS_GPIO_PIN);
 #endif
+	uint8_t sendsize;
+
+	sendsize = rt_spi_transfer(spi_dev_com,(void *)burst_write_send_buff,burst_write_recv_buff,burst_write_index);
+	if(sendsize != burst_write_index)
+		rt_kprintf("SPI BUS send data len is %d\n",sendsize);
+	burst_write_index = 0;
+	memset(burst_write_send_buff,0,30);
+	memset(burst_write_recv_buff,0,30);
 }
 
 
