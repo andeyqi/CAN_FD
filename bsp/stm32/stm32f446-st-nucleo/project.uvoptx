@@ -157,9 +157,57 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
+          <LineNumber>1644</LineNumber>
+          <EnabledFlag>0</EnabledFlag>
+          <Address>134229798</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>applications\tcan4x5x\TCAN4550.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\rt_thread\applications/tcan4x5x/TCAN4550.c\1644</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>1642</LineNumber>
+          <EnabledFlag>0</EnabledFlag>
+          <Address>134229794</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>applications\tcan4x5x\TCAN4550.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\rt_thread\applications/tcan4x5x/TCAN4550.c\1642</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>1641</LineNumber>
+          <EnabledFlag>0</EnabledFlag>
+          <Address>134229784</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>applications\tcan4x5x\TCAN4550.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\rt_thread\applications/tcan4x5x/TCAN4550.c\1641</Expression>
+        </Bp>
+        <Bp>
+          <Number>3</Number>
+          <Type>0</Type>
           <LineNumber>117</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134220092</Address>
+          <EnabledFlag>0</EnabledFlag>
+          <Address>134220060</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -170,23 +218,14 @@
           <ExecCommand></ExecCommand>
           <Expression>\\rt_thread\applications/tcan4x5x/TCAN4x5x_SPI.c\117</Expression>
         </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>13</LineNumber>
-          <EnabledFlag>0</EnabledFlag>
-          <Address>134264668</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>applications\tcan4x5x\TCAN4550_Task.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\rt_thread\applications/tcan4x5x/TCAN4550_Task.c\13</Expression>
-        </Bp>
       </Breakpoint>
+      <WatchWindow1>
+        <Ww>
+          <count>0</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>burst_write_send_buff</ItemText>
+        </Ww>
+      </WatchWindow1>
       <Tracepoint>
         <THDelay>0</THDelay>
       </Tracepoint>
@@ -436,7 +475,7 @@
       <GroupNumber>2</GroupNumber>
       <FileNumber>16</FileNumber>
       <FileType>1</FileType>
-      <tvExp>0</tvExp>
+      <tvExp>1</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>applications\tcan4x5x\TCAN4550.c</PathWithFileName>
