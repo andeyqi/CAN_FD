@@ -47,13 +47,13 @@
 #include <string.h>
 extern struct rt_spi_device *spi_dev_com;
 
-static  uint8_t burst_write_send_buff[32] = {0};
-static  uint8_t burst_write_recv_buff[32] = {0};
+static  uint8_t burst_write_send_buff[128] = {0};
+static  uint8_t burst_write_recv_buff[128] = {0};
 static  uint8_t burst_write_index = 0;
 
-static  uint8_t burst_read_send_buff[32] = {0};
-static  uint8_t burst_read_recv_buff[32] = {0};
-static  uint8_t burst_read_index = 0;
+static  uint8_t burst_read_send_buff[128] = {0};
+static  uint8_t burst_read_recv_buff[128] = {0};
+static  uint8_t burst_read_index = 1;
 
 
 /*
@@ -219,8 +219,8 @@ AHB_WRITE_BURST_END(void)
 	if(sendsize != burst_write_index)
 		rt_kprintf("SPI BUS send data len is %d\n",sendsize);
 	burst_write_index = 0;
-	memset(burst_write_send_buff,0,30);
-	memset(burst_write_recv_buff,0,30);
+	memset(burst_write_send_buff,0,sizeof(burst_write_send_buff));
+	memset(burst_write_recv_buff,0,sizeof(burst_write_recv_buff));
 }
 
 
@@ -251,6 +251,16 @@ AHB_READ_BURST_START(uint16_t address, uint8_t words)
     WAIT_FOR_TRANSMIT;
     EUSCI_B_SPI_transmitData(SPI_HW_ADDR, words);
 #endif
+	uint8_t sendsize;
+
+	burst_read_send_buff[0] = AHB_READ_OPCODE;
+	burst_read_send_buff[1] = (address&0xff00) >> 8;
+	burst_read_send_buff[2] = address&0xff;
+	burst_read_send_buff[3] = words;
+	burst_read_index = 1;
+	sendsize = rt_spi_transfer(spi_dev_com,(void *)burst_read_send_buff,burst_read_recv_buff,(words+1)*4);
+	rt_kprintf("BRU RD send data len is %d\n",sendsize);
+
 }
 
 
@@ -295,7 +305,11 @@ AHB_READ_BURST_READ(void)
     returnData = (((uint32_t)readData) << 24) | (((uint32_t)readData1 << 16)) | (((uint32_t)readData2) << 8) | readData3;
     return returnData;
 #endif
-return 0;
+	uint32_t returnData;
+	returnData = (((uint32_t)burst_read_recv_buff[4*burst_read_index]) << 24) | (((uint32_t)burst_read_recv_buff[(4*burst_read_index)+1] << 16)) | (((uint32_t)burst_read_recv_buff[(4*burst_read_index)+2]) << 8) | burst_read_recv_buff[(4*burst_read_index)+3];
+
+	burst_read_index++;
+	return returnData;
 }
 
 
@@ -312,4 +326,7 @@ AHB_READ_BURST_END(void)
     WAIT_FOR_IDLE;
     GPIO_setOutputHighOnPin(SPI_CS_GPIO_PORT, SPI_CS_GPIO_PIN);
 #endif
+	burst_read_index = 1;
+	memset(burst_read_send_buff,0,sizeof(burst_read_send_buff));
+	memset(burst_read_recv_buff,0,sizeof(burst_read_recv_buff));
 }

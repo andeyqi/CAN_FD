@@ -9,8 +9,12 @@ static struct rt_thread tcan4550;
 static rt_uint8_t tcan4550_stack[512];
 struct rt_spi_device *spi_dev_com;	  /* SPI 设备句柄 */
 
+volatile uint8_t TCAN_Int_Cnt = 0;					// A variable used to keep track of interrupts the MCAN Interrupt pin
+
 /* defined the RESET: PA0 */
-#define TCAN_RST    GET_PIN(A,0)
+//#define TCAN_RST    GET_PIN(A,0)
+#define TCAN_INIT    GET_PIN(A,0)
+
 static void tcandump(int argc, char**argv);
 
 /*
@@ -185,6 +189,10 @@ Init_CAN(void)
 	TCAN4x5x_MCAN_ClearInterruptsAll();                         // Resets all MCAN interrupts (does NOT include any SPIERR interrupts)
 }
 
+void tcan_irq_handler(void *args)
+{
+	TCAN_Int_Cnt++;	
+}
 
 
 static void tcan4550_thread_entry(void* parameter)
@@ -211,11 +219,16 @@ static void tcan4550_thread_entry(void* parameter)
         rt_kprintf("Config spi10 failed\n");
     }
 
-	rt_pin_mode(TCAN_RST, PIN_MODE_OUTPUT);
-	rt_pin_write(TCAN_RST, PIN_HIGH);
-	rt_thread_delay(10);
-	rt_pin_write(TCAN_RST, PIN_LOW);
-	rt_thread_delay(10);
+	//rt_pin_mode(TCAN_RST, PIN_MODE_OUTPUT);
+	//rt_pin_write(TCAN_RST, PIN_HIGH);
+	//rt_thread_delay(10);
+	//rt_pin_write(TCAN_RST, PIN_LOW);
+	//rt_thread_delay(10);
+
+	rt_pin_mode(TCAN_INIT, PIN_MODE_INPUT);
+	rt_pin_irq_enable(TCAN_INIT,PIN_IRQ_ENABLE);
+	rt_pin_attach_irq(TCAN_INIT,PIN_IRQ_MODE_FALLING,tcan_irq_handler,NULL);
+
 
 	uint32_t device_id0;
 	device_id0 = AHB_READ_32(REG_SPI_DEVICE_ID0);
@@ -226,7 +239,7 @@ static void tcan4550_thread_entry(void* parameter)
 
 			/* Define the CAN message we want to send*/
 		TCAN4x5x_MCAN_TX_Header header = {0};			// Remember to initialize to 0, or you'll get random garbage!
-		uint8_t data[8] = {0x55, 0x66, 0x77, 0x88};		// Define the data payload
+		uint8_t data[8] = {0x11,0x22,0x33,0x44,0x55, 0x66, 0x77, 0x88};		// Define the data payload
 		header.DLC = MCAN_DLC_8B;						// Set the DLC to be equal to or less than the data payload (it is ok to pass a 64 byte data array into the WriteTXFIFO function if your DLC is 8 bytes, only the first 8 bytes will be read)
 		header.ID = 0x100;								// Set the ID
 		header.FDF = 0;									// CAN FD frame enabled
@@ -280,6 +293,43 @@ static void tcan4550_thread_entry(void* parameter)
     		rt_kprintf("13\n");
     	}
 #endif
+		//if (TCAN_Int_Cnt > 0 )
+		{
+			//rt_kprintf("INT cnt %d\n",TCAN_Int_Cnt);
+			//TCAN_Int_Cnt--;
+			TCAN4x5x_Device_Interrupts dev_ir = {0};            // Define a new Device IR object for device (non-CAN) interrupt checking
+			TCAN4x5x_MCAN_Interrupts mcan_ir = {0};				// Setup a new MCAN IR object for easy interrupt checking
+			TCAN4x5x_Device_ReadInterrupts(&dev_ir);            // Read the device interrupt register
+			TCAN4x5x_MCAN_ReadInterrupts(&mcan_ir);		        // Read the interrupt register
+
+			if (dev_ir.SPIERR)                                  // If the SPIERR flag is set
+			    TCAN4x5x_Device_ClearSPIERR();                  // Clear the SPIERR flag
+
+			if (mcan_ir.RF0N)									// If a new message in RX FIFO 0
+			{
+				TCAN4x5x_MCAN_RX_Header MsgHeader = {0};		// Initialize to 0 or you'll get garbage
+				uint8_t numBytes = 0;                           // Used since the ReadNextFIFO function will return how many bytes of data were read
+				uint8_t dataPayload[64] = {0};                  // Used to store the received data
+
+				TCAN4x5x_MCAN_ClearInterrupts(&mcan_ir);	    // Clear any of the interrupt bits that are set.
+
+				numBytes = TCAN4x5x_MCAN_ReadNextFIFO( RXFIFO0, &MsgHeader, dataPayload);	// This will read the next element in the RX FIFO 0
+
+				// numBytes will have the number of bytes it transfered in it. Or you can decode the DLC value in MsgHeader.DLC
+				// The data is now in dataPayload[], and message specific information is in the MsgHeader struct.
+				if (MsgHeader.ID == 0x0AA)		// Example of how you can do an action based off a received address
+				{
+					// Do something
+				}
+				rt_kprintf("meg id %x dlc %d\n",MsgHeader.ID,MsgHeader.DLC);
+				uint8_t i_loop  = 0;
+				for(i_loop = 0;i_loop < MsgHeader.DLC;i_loop++)
+				{
+					rt_kprintf("[%x] ",dataPayload[i_loop]);
+				}
+				rt_kprintf("\n");
+			}
+		}
 		rt_thread_delay(10);
     }
 }
