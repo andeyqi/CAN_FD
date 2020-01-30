@@ -107,7 +107,7 @@ Init_CAN(void)
 		rt_kprintf("5#\n");
 	}
 
-	//TCAN4x5x_MCAN_ConfigureDataTiming_Simple(&TCANDataTiming);	// Setup CAN FD timing
+	TCAN4x5x_MCAN_ConfigureDataTiming_Simple(&TCANDataTiming);	// Setup CAN FD timing
 	TCAN4x5x_MRAM_Clear();										// Clear all of MRAM (Writes 0's to all of it)
 	ret = TCAN4x5x_MRAM_Configure(&MRAMConfiguration);				// Set up the applicable registers related to MRAM configuration
 	if(false == ret)
@@ -195,7 +195,7 @@ static void tcan4550_thread_entry(void* parameter)
 
 	cfg.data_width = 8;
 	cfg.mode = RT_SPI_MASTER | RT_SPI_MODE_0 | RT_SPI_MSB;
-	cfg.max_hz = 1*1000*1000;							 /* 1M */
+	cfg.max_hz = 8*1000*1000;							 /* 1M */
 	
     rt_hw_spi_device_attach("spi1", "spi10", GPIOB, GPIO_PIN_6);
 
@@ -280,7 +280,7 @@ static void tcan4550_thread_entry(void* parameter)
     		rt_kprintf("13\n");
     	}
 #endif
-		rt_thread_delay(10000);
+		rt_thread_delay(10);
     }
 }
 

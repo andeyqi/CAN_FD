@@ -164,7 +164,7 @@ AHB_WRITE_BURST_START(uint16_t address, uint8_t words)
 	burst_write_index = 0;
 
 	burst_write_send_buff[burst_write_index++] = AHB_WRITE_OPCODE;
-	burst_write_send_buff[burst_write_index++] = (address&0xff) >> 8;
+	burst_write_send_buff[burst_write_index++] = (address&0xff00) >> 8;
 	burst_write_send_buff[burst_write_index++] = (address&0xff);
 	burst_write_send_buff[burst_write_index++] = words;
 }
