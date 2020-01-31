@@ -1,22 +1,31 @@
+#ifdef TCAN_PLATFORM_RTT
 #include <rtthread.h>
 #include <board.h>
 #include <drv_spi.h>
 #include <rtdevice.h>
 #include <rthw.h>
+#endif
 #include "TCAN4550.h"
 
+volatile uint8_t TCAN_Int_Cnt = 0;					// A variable used to keep track of interrupts the MCAN Interrupt pin
+
+#ifdef TCAN_PLATFORM_RTT
+#define tcan_dbg_raw(...)         rt_kprintf(__VA_ARGS__)
+#else
+#define tcan_dbg_raw(...)
+#endif
+
+#ifdef TCAN_PLATFORM_RTT
 static struct rt_thread tcan4550;
 static rt_uint8_t tcan4550_stack[512];
 struct rt_spi_device *spi_dev_com;	  /* SPI 设备句柄 */
-
-volatile uint8_t TCAN_Int_Cnt = 0;					// A variable used to keep track of interrupts the MCAN Interrupt pin
 
 /* defined the RESET: PA0 */
 //#define TCAN_RST    GET_PIN(A,0)
 #define TCAN_INIT    GET_PIN(A,0)
 
 static void tcandump(int argc, char**argv);
-
+#endif
 /*
  * Configure the TCAN4550
  */
@@ -26,20 +35,20 @@ Init_CAN(void)
 	bool ret;
     TCAN4x5x_Device_ClearSPIERR();                              // Clear any SPI ERR flags that might be set as a result of our pin mux changing during MCU startup
 
-	rt_kprintf("0c 0x %x\n",AHB_READ_32(REG_SPI_STATUS));
+	tcan_dbg_raw("0c 0x %x\n",AHB_READ_32(REG_SPI_STATUS));
     /* Step one attempt to clear all interrupts */
 	TCAN4x5x_Device_Interrupt_Enable dev_ie = {0};				// Initialize to 0 to all bits are set to 0.
 	ret = TCAN4x5x_Device_ConfigureInterruptEnable(&dev_ie);	        // Disable all non-MCAN related interrupts for simplicity
 	if(ret == false)
 	{
-		rt_kprintf("1 # \n");
+		tcan_dbg_raw("1 # \n");
 	}
 	TCAN4x5x_Device_Interrupts dev_ir = {0};					// Setup a new MCAN IR object for easy interrupt checking
 	TCAN4x5x_Device_ReadInterrupts(&dev_ir);					// Request that the struct be updated with current DEVICE (not MCAN) interrupt values
-	rt_kprintf("dev isr %08x\n",dev_ir.word);
+	tcan_dbg_raw("dev isr %08x\n",dev_ir.word);
 	if (dev_ir.PWRON)                                           // If the Power On interrupt flag is set
 		TCAN4x5x_Device_ClearInterrupts(&dev_ir);               // Clear it because if it's not cleared within ~4 minutes, it goes to sleep
-	rt_kprintf("dev isr %08x\n",AHB_READ_32(REG_DEV_IR));
+	tcan_dbg_raw("dev isr %08x\n",AHB_READ_32(REG_DEV_IR));
 	/* Configure the CAN bus speeds */
 	TCAN4x5x_MCAN_Nominal_Timing_Simple TCANNomTiming = {0};	// 500k arbitration with a 40 MHz crystal ((40E6 / 2) / (32 + 8) = 500E3)
 	TCANNomTiming.NominalBitRatePrescaler = 2;
@@ -93,22 +102,22 @@ Init_CAN(void)
 	ret = TCAN4x5x_MCAN_EnableProtectedRegisters();					// Start by making protected registers accessible
 	if(false == ret)
 	{
-		rt_kprintf("2#\n");
+		tcan_dbg_raw("2#\n");
 	}
 	ret = TCAN4x5x_MCAN_ConfigureCCCRRegister(&cccrConfig);			// Enable FD mode and Bit rate switching
 	if(false == ret)
 	{
-		rt_kprintf("3#\n");
+		tcan_dbg_raw("3#\n");
 	}
 	ret = TCAN4x5x_MCAN_ConfigureGlobalFilter(&gfc);                  // Configure the global filter configuration (Default CAN message behavior)
 	if(false == ret)
 	{
-		rt_kprintf("4#\n");
+		tcan_dbg_raw("4#\n");
 	}
 	ret =TCAN4x5x_MCAN_ConfigureNominalTiming_Simple(&TCANNomTiming);// Setup nominal/arbitration bit timing
 	if(false == ret)
 	{
-		rt_kprintf("5#\n");
+		tcan_dbg_raw("5#\n");
 	}
 
 	TCAN4x5x_MCAN_ConfigureDataTiming_Simple(&TCANDataTiming);	// Setup CAN FD timing
@@ -116,13 +125,13 @@ Init_CAN(void)
 	ret = TCAN4x5x_MRAM_Configure(&MRAMConfiguration);				// Set up the applicable registers related to MRAM configuration
 	if(false == ret)
 	{
-		rt_kprintf("6#\n");
+		tcan_dbg_raw("6#\n");
 	}
 
 	ret = TCAN4x5x_MCAN_DisableProtectedRegisters();					// Disable protected write and take device out of INIT mode
 	if(false == ret)
 	{
-		rt_kprintf("7#\n");
+		tcan_dbg_raw("7#\n");
 	}
 
 
@@ -142,7 +151,7 @@ Init_CAN(void)
 	ret = TCAN4x5x_MCAN_WriteSIDFilter(0, &SID_ID);					// Write to the MRAM
 	if(false == ret)
 	{
-		rt_kprintf("8#\n");
+		tcan_dbg_raw("8#\n");
 	}
 
 
@@ -155,7 +164,7 @@ Init_CAN(void)
 	ret = TCAN4x5x_MCAN_WriteXIDFilter(0, &XID_ID);                   // Write to the MRAM
 	if(false == ret)
 	{
-		rt_kprintf("9#\n");
+		tcan_dbg_raw("9#\n");
 	}
 
 	/* Configure the TCAN4550 Non-CAN-related functions */
@@ -177,13 +186,13 @@ Init_CAN(void)
 	ret = TCAN4x5x_Device_Configure(&devConfig);                      // Configure the device with the above configuration
 	if(false == ret)
 	{
-		rt_kprintf("10#\n");
+		tcan_dbg_raw("10#\n");
 	}
 
 	ret = TCAN4x5x_Device_SetMode(TCAN4x5x_DEVICE_MODE_NORMAL);       // Set to normal mode, since configuration is done. This line turns on the transceiver
 	if(false == ret)
 	{
-		rt_kprintf("11#\n");
+		tcan_dbg_raw("11#\n");
 	}
 
 	TCAN4x5x_MCAN_ClearInterruptsAll();                         // Resets all MCAN interrupts (does NOT include any SPIERR interrupts)
@@ -194,13 +203,11 @@ void tcan_irq_handler(void *args)
 	TCAN_Int_Cnt++;	
 }
 
-
-static void tcan4550_thread_entry(void* parameter)
+void spi_init(void)
 {
+#ifdef TCAN_PLATFORM_RTT
 	struct rt_spi_configuration cfg;
 	rt_err_t ret;
-	bool retv;
-
 	cfg.data_width = 8;
 	cfg.mode = RT_SPI_MASTER | RT_SPI_MODE_0 | RT_SPI_MSB;
 	cfg.max_hz = 8*1000*1000;							 /* 1M */
@@ -211,14 +218,19 @@ static void tcan4550_thread_entry(void* parameter)
     spi_dev_com = (struct rt_spi_device *)rt_device_find("spi10");
     if(!spi_dev_com)
     {
-        rt_kprintf("Not find spi10 device\n");
+        tcan_dbg_raw("Not find spi10 device\n");
     }
     ret = rt_spi_configure(spi_dev_com, &cfg);
     if(ret != RT_EOK)
     {
-        rt_kprintf("Config spi10 failed\n");
+        tcan_dbg_raw("Config spi10 failed\n");
     }
+#endif	
+}
 
+void gpio_init(void)
+{
+#ifdef TCAN_PLATFORM_RTT
 	//rt_pin_mode(TCAN_RST, PIN_MODE_OUTPUT);
 	//rt_pin_write(TCAN_RST, PIN_HIGH);
 	//rt_thread_delay(10);
@@ -228,38 +240,61 @@ static void tcan4550_thread_entry(void* parameter)
 	//rt_pin_mode(TCAN_INIT, PIN_MODE_INPUT);
 	rt_pin_attach_irq(TCAN_INIT,PIN_IRQ_MODE_FALLING,tcan_irq_handler,NULL);
 	rt_pin_irq_enable(TCAN_INIT,PIN_IRQ_ENABLE);
+#endif
+}
 
-
+void test_spi(void)
+{
+#ifdef TCAN_PLATFORM_RTT
 	uint32_t device_id0;
+	
 	device_id0 = AHB_READ_32(REG_SPI_DEVICE_ID0);
-	rt_kprintf("device_id0 %x\n",device_id0);
+	tcan_dbg_raw("device_id0 %x\n",device_id0);
   	rt_thread_delay(100);
+#endif	
+}
 
+
+void task_sleep(uint32_t ms)
+{
+#ifdef TCAN_PLATFORM_RTT
+	rt_thread_delay(ms);
+#endif
+}
+
+static void tcan4550_thread_entry(void* parameter)
+{
+	bool retv;
+
+	spi_init();
+	test_spi();
+	gpio_init();
+	
 	Init_CAN();
 
-			/* Define the CAN message we want to send*/
-		TCAN4x5x_MCAN_TX_Header header = {0};			// Remember to initialize to 0, or you'll get random garbage!
-		uint8_t data[8] = {0x11,0x22,0x33,0x44,0x55, 0x66, 0x77, 0x88};		// Define the data payload
-		header.DLC = MCAN_DLC_8B;						// Set the DLC to be equal to or less than the data payload (it is ok to pass a 64 byte data array into the WriteTXFIFO function if your DLC is 8 bytes, only the first 8 bytes will be read)
-		header.ID = 0x100;								// Set the ID
-		header.FDF = 0;									// CAN FD frame enabled
-		header.BRS = 0;									// Bit rate switch enabled
-		header.EFC = 0;
-		header.MM  = 0;
-		header.RTR = 0;
-		header.XTD = 0;									// We are not using an extended ID in this example
-		header.ESI = 0;									// Error state indicator
+	/* Define the CAN message we want to send*/
+	TCAN4x5x_MCAN_TX_Header header = {0};			// Remember to initialize to 0, or you'll get random garbage!
+	uint8_t data[8] = {0x11,0x22,0x33,0x44,0x55, 0x66, 0x77, 0x88};		// Define the data payload
+	header.DLC = MCAN_DLC_8B;						// Set the DLC to be equal to or less than the data payload (it is ok to pass a 64 byte data array into the WriteTXFIFO function if your DLC is 8 bytes, only the first 8 bytes will be read)
+	header.ID = 0x100;								// Set the ID
+	header.FDF = 0;									// CAN FD frame enabled
+	header.BRS = 0;									// Bit rate switch enabled
+	header.EFC = 0;
+	header.MM  = 0;
+	header.RTR = 0;
+	header.XTD = 0;									// We are not using an extended ID in this example
+	header.ESI = 0;									// Error state indicator
 
 
-		//retv = TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data);	// This function actually writes the header and data payload to the TCAN's MRAM in the specified TX queue number. It returns the bit necessary to write to TXBAR,
-		rt_kprintf("%d\n",TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data));												// but does not necessarily require you to use it. In this example, we won't, so that we can send the data queued up at a later point.
-	
+	//retv = TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data);	// This function actually writes the header and data payload to the TCAN's MRAM in the specified TX queue number. It returns the bit necessary to write to TXBAR,
+	tcan_dbg_raw("%d\n",TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data));												// but does not necessarily require you to use it. In this example, we won't, so that we can send the data queued up at a later point.
 
-		retv = TCAN4x5x_MCAN_TransmitBufferContents(0);		// Now we can send the TX FIFO element 0 data that we had queued up earlier but didn't send.
-		if(retv == false)
-    	{
-    		rt_kprintf("13\n");
-    	}
+
+	retv = TCAN4x5x_MCAN_TransmitBufferContents(0);		// Now we can send the TX FIFO element 0 data that we had queued up earlier but didn't send.
+	if(retv == false)
+	{
+		tcan_dbg_raw("13\n");
+	}
 
     while (1)
     {
@@ -295,7 +330,7 @@ static void tcan4550_thread_entry(void* parameter)
 #endif
 		if (TCAN_Int_Cnt > 0 )
 		{
-			rt_kprintf("INT cnt %d\n",TCAN_Int_Cnt);
+			tcan_dbg_raw("INT cnt %d\n",TCAN_Int_Cnt);
 			TCAN_Int_Cnt--;
 			TCAN4x5x_Device_Interrupts dev_ir = {0};            // Define a new Device IR object for device (non-CAN) interrupt checking
 			TCAN4x5x_MCAN_Interrupts mcan_ir = {0};				// Setup a new MCAN IR object for easy interrupt checking
@@ -321,22 +356,23 @@ static void tcan4550_thread_entry(void* parameter)
 				{
 					// Do something
 				}
-				rt_kprintf("meg id %x dlc %d\n",MsgHeader.ID,MsgHeader.DLC);
+				tcan_dbg_raw("meg id %x dlc %d\n",MsgHeader.ID,MsgHeader.DLC);
 				uint8_t i_loop  = 0;
 				for(i_loop = 0;i_loop < MsgHeader.DLC;i_loop++)
 				{
-					rt_kprintf("[%x] ",dataPayload[i_loop]);
+					tcan_dbg_raw("[%x] ",dataPayload[i_loop]);
 				}
-				rt_kprintf("\n");
+				tcan_dbg_raw("\n");
 			}
 		}
-		rt_thread_delay(10);
+		task_sleep(10);
     }
 }
 
 
 int thread_tcan4550_init(void)
 {
+#ifdef TCAN_PLATFORM_RTT
     rt_err_t result;
 
     result = rt_thread_init(&tcan4550, "tcan4550", 
@@ -346,20 +382,22 @@ int thread_tcan4550_init(void)
     if (result == RT_EOK) 
         rt_thread_startup(&tcan4550);
 	return 0;
+#endif	
 }
 
+#ifdef  TCAN_PLATFORM_RTT
 static void tcandump(int argc, char**argv)
 {
 	uint16_t reg;
 	if(argc > 1)
 	{
 		sscanf(argv[1],"%x",&reg);
-		rt_kprintf("reg value %x\n",AHB_READ_32(reg));
+		tcan_dbg_raw("reg value %x\n",AHB_READ_32(reg));
 	}
 	
 }
 
 MSH_CMD_EXPORT(tcandump, tcandump sample: tcandump <data>);
-
+#endif
 
 
