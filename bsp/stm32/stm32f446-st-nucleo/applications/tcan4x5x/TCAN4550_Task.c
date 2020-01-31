@@ -225,9 +225,9 @@ static void tcan4550_thread_entry(void* parameter)
 	//rt_pin_write(TCAN_RST, PIN_LOW);
 	//rt_thread_delay(10);
 
-	rt_pin_mode(TCAN_INIT, PIN_MODE_INPUT);
-	rt_pin_irq_enable(TCAN_INIT,PIN_IRQ_ENABLE);
+	//rt_pin_mode(TCAN_INIT, PIN_MODE_INPUT);
 	rt_pin_attach_irq(TCAN_INIT,PIN_IRQ_MODE_FALLING,tcan_irq_handler,NULL);
+	rt_pin_irq_enable(TCAN_INIT,PIN_IRQ_ENABLE);
 
 
 	uint32_t device_id0;
@@ -293,10 +293,10 @@ static void tcan4550_thread_entry(void* parameter)
     		rt_kprintf("13\n");
     	}
 #endif
-		//if (TCAN_Int_Cnt > 0 )
+		if (TCAN_Int_Cnt > 0 )
 		{
-			//rt_kprintf("INT cnt %d\n",TCAN_Int_Cnt);
-			//TCAN_Int_Cnt--;
+			rt_kprintf("INT cnt %d\n",TCAN_Int_Cnt);
+			TCAN_Int_Cnt--;
 			TCAN4x5x_Device_Interrupts dev_ir = {0};            // Define a new Device IR object for device (non-CAN) interrupt checking
 			TCAN4x5x_MCAN_Interrupts mcan_ir = {0};				// Setup a new MCAN IR object for easy interrupt checking
 			TCAN4x5x_Device_ReadInterrupts(&dev_ir);            // Read the device interrupt register
