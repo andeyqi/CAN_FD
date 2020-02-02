@@ -8,6 +8,9 @@
 #include "TCAN4550.h"
 
 volatile uint8_t TCAN_Int_Cnt = 0;					// A variable used to keep track of interrupts the MCAN Interrupt pin
+volatile uint8_t TCAN_is_wakeup = 0;
+//volatile uint8_t TCAN_is_wakeup = 0;
+
 
 #ifdef TCAN_PLATFORM_RTT
 #define tcan_dbg_raw(...)         rt_kprintf(__VA_ARGS__)
@@ -23,6 +26,8 @@ struct rt_spi_device *spi_dev_com;	  /* SPI 设备句柄 */
 /* defined the RESET: PA0 */
 //#define TCAN_RST    GET_PIN(A,0)
 #define TCAN_INIT    GET_PIN(A,0)
+#define TCAN_RST	 GET_PIN(A,1)
+#define TCAN_NWAKE	 GET_PIN(A,4)
 
 static void tcandump(int argc, char**argv);
 #endif
@@ -203,6 +208,12 @@ void tcan_irq_handler(void *args)
 	TCAN_Int_Cnt++;	
 }
 
+void tcan_wakeup_handler(void *args)
+{
+	tcan_dbg_raw("tcan wake up \n");
+	TCAN_is_wakeup = 1;
+}
+
 void spi_init(void)
 {
 #ifdef TCAN_PLATFORM_RTT
@@ -237,9 +248,15 @@ void gpio_init(void)
 	//rt_pin_write(TCAN_RST, PIN_LOW);
 	//rt_thread_delay(10);
 
-	//rt_pin_mode(TCAN_INIT, PIN_MODE_INPUT);
+	rt_pin_mode(TCAN_RST, PIN_MODE_OUTPUT);
+	
 	rt_pin_attach_irq(TCAN_INIT,PIN_IRQ_MODE_FALLING,tcan_irq_handler,NULL);
 	rt_pin_irq_enable(TCAN_INIT,PIN_IRQ_ENABLE);
+	
+	rt_pin_attach_irq(TCAN_NWAKE,PIN_IRQ_MODE_FALLING,tcan_wakeup_handler,NULL);
+	rt_pin_irq_enable(TCAN_NWAKE,PIN_IRQ_ENABLE);
+
+	
 #endif
 }
 
@@ -264,8 +281,6 @@ void task_sleep(uint32_t ms)
 
 static void tcan4550_thread_entry(void* parameter)
 {
-	bool retv;
-
 	spi_init();
 	test_spi();
 	gpio_init();
@@ -330,6 +345,20 @@ static void tcan4550_thread_entry(void* parameter)
     		rt_kprintf("13\n");
     	}
 #endif
+		if (TCAN_is_wakeup)
+		{
+			/* reset tcan4550 */
+			rt_pin_write(TCAN_RST, PIN_LOW);
+			rt_thread_delay(10);
+			rt_pin_write(TCAN_RST, PIN_HIGH);
+			rt_thread_delay(10);
+			rt_pin_write(TCAN_RST, PIN_LOW);
+			rt_thread_delay(10);
+
+			Init_CAN();
+			TCAN_is_wakeup = 0;
+		}
+		
 		if (TCAN_Int_Cnt > 0 )
 		{
 			tcan_dbg_raw("INT cnt %d\n",TCAN_Int_Cnt);
