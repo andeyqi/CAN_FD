@@ -421,6 +421,7 @@ static void tcan4550_thread_entry(void* parameter)
 				/* entry sleep mode */
 				TCAN4x5x_Device_SetMode(TCAN4x5x_DEVICE_MODE_SLEEP);
 				tcan_mode = TCAN4x5x_DEVICE_MODE_SLEEP;
+				sleep_count = 0;
 			}
 		}
 		task_sleep(10);
@@ -486,6 +487,13 @@ static void tcansleep(int argc, char**argv)
 	TCAN4x5x_Device_SetMode(TCAN4x5x_DEVICE_MODE_SLEEP);
 }
 MSH_CMD_EXPORT(tcansleep, tcansleep sample: tcansleep <data>);
+
+
+static void tcanstatus(int argc, char**argv)
+{
+	tcan_dbg_raw("mode %d count %d \n",tcan_mode,sleep_count);
+}
+MSH_CMD_EXPORT(tcanstatus, tcanstatus sample: tcanstatus <data>);
 
 
 #endif
