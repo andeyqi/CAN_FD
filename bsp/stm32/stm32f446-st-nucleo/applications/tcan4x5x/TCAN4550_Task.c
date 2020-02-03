@@ -9,6 +9,9 @@
 
 volatile uint8_t TCAN_Int_Cnt = 0;					// A variable used to keep track of interrupts the MCAN Interrupt pin
 volatile uint8_t TCAN_is_wakeup = 0;
+volatile uint32_t sleep_count = 0;
+uint8_t  tcan_mode = TCAN4x5x_DEVICE_MODE_STANDBY;
+
 //volatile uint8_t TCAN_is_wakeup = 0;
 
 
@@ -199,13 +202,15 @@ Init_CAN(void)
 	{
 		tcan_dbg_raw("11#\n");
 	}
+	tcan_mode = TCAN4x5x_DEVICE_MODE_NORMAL;
 
 	TCAN4x5x_MCAN_ClearInterruptsAll();                         // Resets all MCAN interrupts (does NOT include any SPIERR interrupts)
 }
 
 void tcan_irq_handler(void *args)
 {
-	TCAN_Int_Cnt++;	
+	if(tcan_mode ==  TCAN4x5x_DEVICE_MODE_NORMAL)
+		TCAN_Int_Cnt++;	
 }
 
 void tcan_wakeup_handler(void *args)
@@ -279,6 +284,18 @@ void task_sleep(uint32_t ms)
 #endif
 }
 
+void reset_tcan4550(void)
+{
+#ifdef TCAN_PLATFORM_RTT
+	rt_pin_write(TCAN_RST, PIN_LOW);
+	rt_thread_delay(10);
+	rt_pin_write(TCAN_RST, PIN_HIGH);
+	rt_thread_delay(10);
+	rt_pin_write(TCAN_RST, PIN_LOW);
+	rt_thread_delay(10);
+#endif	
+}
+
 static void tcan4550_thread_entry(void* parameter)
 {
 	spi_init();
@@ -348,13 +365,8 @@ static void tcan4550_thread_entry(void* parameter)
 		if (TCAN_is_wakeup)
 		{
 			/* reset tcan4550 */
-			rt_pin_write(TCAN_RST, PIN_LOW);
-			rt_thread_delay(10);
-			rt_pin_write(TCAN_RST, PIN_HIGH);
-			rt_thread_delay(10);
-			rt_pin_write(TCAN_RST, PIN_LOW);
-			rt_thread_delay(10);
-
+			reset_tcan4550();
+			
 			Init_CAN();
 			TCAN_is_wakeup = 0;
 		}
@@ -394,6 +406,21 @@ static void tcan4550_thread_entry(void* parameter)
 					tcan_dbg_raw("[%x] ",dataPayload[i_loop]);
 				}
 				tcan_dbg_raw("\n");
+				sleep_count = 0;
+			}
+		}
+		else
+		{
+			if(tcan_mode == TCAN4x5x_DEVICE_MODE_NORMAL)
+			{
+				sleep_count++;
+			}
+			if((sleep_count == 100*60*10) && (tcan_mode == TCAN4x5x_DEVICE_MODE_NORMAL))
+			{
+				tcan_dbg_raw("tcan entry sleep mode.\n");
+				/* entry sleep mode */
+				TCAN4x5x_Device_SetMode(TCAN4x5x_DEVICE_MODE_SLEEP);
+				tcan_mode = TCAN4x5x_DEVICE_MODE_SLEEP;
 			}
 		}
 		task_sleep(10);
