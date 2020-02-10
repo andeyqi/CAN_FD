@@ -61,7 +61,7 @@
  */
 
 #include "TCAN4550.h"
-#include <rtthread.h>
+//#include <rtthread.h>
 
 
 #ifdef TCAN4x5x_MCAN_CACHE_CONFIGURATION
@@ -1639,7 +1639,7 @@ TCAN4x5x_Device_ConfigureInterruptEnable(TCAN4x5x_Device_Interrupt_Enable *ie)
     // Check to see if the write was successful.
     uint32_t readValue = AHB_READ_32(REG_DEV_IE);       // Read value
     readValue &= REG_BITS_DEVICE_IE_MASK;               // Apply mask to ignore reserved
-	rt_kprintf("read value %x  cmp value %x\n",readValue,ie->word & REG_BITS_DEVICE_IE_MASK);
+	//rt_kprintf("read value %x  cmp value %x\n",readValue,ie->word & REG_BITS_DEVICE_IE_MASK);
 	if (readValue != (ie->word & REG_BITS_DEVICE_IE_MASK))
         return false;
 #endif

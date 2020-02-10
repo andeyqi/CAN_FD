@@ -87,8 +87,8 @@ AHB_WRITE_32(uint16_t address, uint32_t data)
 	sendsize = rt_spi_transfer(spi_dev_com,(void *)sendbuff,recvbuff,8);
 	if(sendsize != 8)
 		rt_kprintf("SPI BUS send data len is %d\n",sendsize);
-	else if(recvbuff[0] != 0)
-		rt_kprintf("recv [0] %x\n",recvbuff[0]);
+	//else if(recvbuff[0] != 0)
+	//	rt_kprintf("recv [0] %x\n",recvbuff[0]);
 #endif	
 }
 
@@ -225,7 +225,7 @@ AHB_WRITE_BURST_END(void)
 	uint8_t sendsize;
 
 	sendsize = rt_spi_transfer(spi_dev_com,(void *)burst_write_send_buff,burst_write_recv_buff,burst_write_index);
-	rt_kprintf("SPI BUS send data len is %d\n",sendsize);
+	//rt_kprintf("SPI BUS send data len is %d\n",sendsize);
 
 	if(sendsize != burst_write_index)
 		rt_kprintf("SPI BUS send data len is %d\n",sendsize);
@@ -273,7 +273,7 @@ AHB_READ_BURST_START(uint16_t address, uint8_t words)
 	burst_read_send_buff[3] = words;
 	burst_read_index = 1;
 	sendsize = rt_spi_transfer(spi_dev_com,(void *)burst_read_send_buff,burst_read_recv_buff,(words+1)*4);
-	rt_kprintf("BRU RD send data len is %d\n",sendsize);
+	//rt_kprintf("BRU RD send data len is %d\n",sendsize);
 #endif
 }
 

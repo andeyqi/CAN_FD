@@ -4,6 +4,10 @@
 #include <drv_spi.h>
 #include <rtdevice.h>
 #include <rthw.h>
+#else
+/* TODO to include spi/gpio api header file */
+/*  spi_open() */
+
 #endif
 #include "TCAN4550.h"
 
@@ -43,7 +47,7 @@ Init_CAN(void)
 	bool ret;
     TCAN4x5x_Device_ClearSPIERR();                              // Clear any SPI ERR flags that might be set as a result of our pin mux changing during MCU startup
 
-	tcan_dbg_raw("0c 0x %x\n",AHB_READ_32(REG_SPI_STATUS));
+	//tcan_dbg_raw("0c 0x %x\n",AHB_READ_32(REG_SPI_STATUS));
     /* Step one attempt to clear all interrupts */
 	TCAN4x5x_Device_Interrupt_Enable dev_ie = {0};				// Initialize to 0 to all bits are set to 0.
 	ret = TCAN4x5x_Device_ConfigureInterruptEnable(&dev_ie);	        // Disable all non-MCAN related interrupts for simplicity
@@ -53,10 +57,10 @@ Init_CAN(void)
 	}
 	TCAN4x5x_Device_Interrupts dev_ir = {0};					// Setup a new MCAN IR object for easy interrupt checking
 	TCAN4x5x_Device_ReadInterrupts(&dev_ir);					// Request that the struct be updated with current DEVICE (not MCAN) interrupt values
-	tcan_dbg_raw("dev isr %08x\n",dev_ir.word);
+	//tcan_dbg_raw("dev isr %08x\n",dev_ir.word);
 	if (dev_ir.PWRON)                                           // If the Power On interrupt flag is set
 		TCAN4x5x_Device_ClearInterrupts(&dev_ir);               // Clear it because if it's not cleared within ~4 minutes, it goes to sleep
-	tcan_dbg_raw("dev isr %08x\n",AHB_READ_32(REG_DEV_IR));
+	//tcan_dbg_raw("dev isr %08x\n",AHB_READ_32(REG_DEV_IR));
 	/* Configure the CAN bus speeds */
 	TCAN4x5x_MCAN_Nominal_Timing_Simple TCANNomTiming = {0};	// 500k arbitration with a 40 MHz crystal ((40E6 / 2) / (32 + 8) = 500E3)
 	TCANNomTiming.NominalBitRatePrescaler = 2;
@@ -207,13 +211,13 @@ Init_CAN(void)
 	TCAN4x5x_MCAN_ClearInterruptsAll();                         // Resets all MCAN interrupts (does NOT include any SPIERR interrupts)
 }
 
-void tcan_irq_handler(void *args)
+void gpio_can_irq_ind(void *args)
 {
 	if(tcan_mode ==  TCAN4x5x_DEVICE_MODE_NORMAL)
 		TCAN_Int_Cnt++;	
 }
 
-void tcan_wakeup_handler(void *args)
+void gpio_can_wakeup_irq_ind(void *args)
 {
 	tcan_dbg_raw("tcan wake up \n");
 	TCAN_is_wakeup = 1;
@@ -226,7 +230,7 @@ void spi_init(void)
 	rt_err_t ret;
 	cfg.data_width = 8;
 	cfg.mode = RT_SPI_MASTER | RT_SPI_MODE_0 | RT_SPI_MSB;
-	cfg.max_hz = 8*1000*1000;							 /* 1M */
+	cfg.max_hz = 1*1000*1000;							 /* 1M */
 	
     rt_hw_spi_device_attach("spi1", "spi10", GPIOB, GPIO_PIN_6);
 
@@ -241,10 +245,12 @@ void spi_init(void)
     {
         tcan_dbg_raw("Config spi10 failed\n");
     }
+#else
+	spi_open();
 #endif	
 }
 
-void gpio_init(void)
+void can_gpio_init(void)
 {
 #ifdef TCAN_PLATFORM_RTT
 	//rt_pin_mode(TCAN_RST, PIN_MODE_OUTPUT);
@@ -255,32 +261,35 @@ void gpio_init(void)
 
 	rt_pin_mode(TCAN_RST, PIN_MODE_OUTPUT);
 	
-	rt_pin_attach_irq(TCAN_INIT,PIN_IRQ_MODE_FALLING,tcan_irq_handler,NULL);
+	rt_pin_attach_irq(TCAN_INIT,PIN_IRQ_MODE_FALLING,gpio_can_irq_ind,NULL);
 	rt_pin_irq_enable(TCAN_INIT,PIN_IRQ_ENABLE);
 	
-	rt_pin_attach_irq(TCAN_NWAKE,PIN_IRQ_MODE_FALLING,tcan_wakeup_handler,NULL);
+	rt_pin_attach_irq(TCAN_NWAKE,PIN_IRQ_MODE_FALLING,gpio_can_wakeup_irq_ind,NULL);
 	rt_pin_irq_enable(TCAN_NWAKE,PIN_IRQ_ENABLE);
+#else
 
-	
 #endif
 }
 
 void test_spi(void)
 {
-#ifdef TCAN_PLATFORM_RTT
 	uint32_t device_id0;
 	
 	device_id0 = AHB_READ_32(REG_SPI_DEVICE_ID0);
-	tcan_dbg_raw("device_id0 %x\n",device_id0);
-  	rt_thread_delay(100);
-#endif	
+	if( device_id0 ==  0x4E414354)
+		tcan_dbg_raw("SPI test OK.\n");
+	else
+		tcan_dbg_raw("SPI test NG.\n");
+  	//rt_thread_delay(100);	
 }
 
 
-void task_sleep(uint32_t ms)
+void can_task_sleep(uint32_t ms)
 {
 #ifdef TCAN_PLATFORM_RTT
 	rt_thread_delay(ms);
+#else
+	/* TODO */
 #endif
 }
 
@@ -293,6 +302,8 @@ void reset_tcan4550(void)
 	rt_thread_delay(10);
 	rt_pin_write(TCAN_RST, PIN_LOW);
 	rt_thread_delay(10);
+#else
+	/* TODO */
 #endif	
 }
 
@@ -300,7 +311,7 @@ static void tcan4550_thread_entry(void* parameter)
 {
 	spi_init();
 	test_spi();
-	gpio_init();
+	can_gpio_init();
 	
 	Init_CAN();
 #if 0
@@ -415,7 +426,7 @@ static void tcan4550_thread_entry(void* parameter)
 			{
 				sleep_count++;
 			}
-			if((sleep_count == 100*60*10) && (tcan_mode == TCAN4x5x_DEVICE_MODE_NORMAL))
+			if((sleep_count == 100*60*1) && (tcan_mode == TCAN4x5x_DEVICE_MODE_NORMAL))
 			{
 				tcan_dbg_raw("tcan entry sleep mode.\n");
 				/* entry sleep mode */
@@ -424,7 +435,7 @@ static void tcan4550_thread_entry(void* parameter)
 				sleep_count = 0;
 			}
 		}
-		task_sleep(10);
+		can_task_sleep(10);
     }
 }
 
