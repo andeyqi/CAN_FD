@@ -10,11 +10,13 @@
 
 #endif
 #include "TCAN4550.h"
+#include "include/can.h"
 
 volatile uint8_t TCAN_Int_Cnt = 0;					// A variable used to keep track of interrupts the MCAN Interrupt pin
 volatile uint8_t TCAN_is_wakeup = 0;
 volatile uint32_t sleep_count = 0;
 uint8_t  tcan_mode = TCAN4x5x_DEVICE_MODE_STANDBY;
+uint8_t  is_tcan_busoff = 0;
 
 //volatile uint8_t TCAN_is_wakeup = 0;
 
@@ -150,6 +152,7 @@ Init_CAN(void)
 	/* Set the interrupts we want to enable for MCAN */
 	TCAN4x5x_MCAN_Interrupt_Enable mcan_ie = {0};				// Remember to initialize to 0, or you'll get random garbage!
 	mcan_ie.RF0NE = 1;											// RX FIFO 0 new message interrupt enable
+	mcan_ie.BOE = 1;	
 
 	TCAN4x5x_MCAN_ConfigureInterruptEnable(&mcan_ie);			// Enable the appropriate registers
 
@@ -207,6 +210,7 @@ Init_CAN(void)
 		tcan_dbg_raw("11#\n");
 	}
 	tcan_mode = TCAN4x5x_DEVICE_MODE_NORMAL;
+	is_tcan_busoff = 0;
 
 	TCAN4x5x_MCAN_ClearInterruptsAll();                         // Resets all MCAN interrupts (does NOT include any SPIERR interrupts)
 }
@@ -284,6 +288,51 @@ void test_spi(void)
 }
 
 
+
+uint8_t xcp_get_cc(void)
+{
+	/* TODO */
+	return 0;
+}
+
+uint8_t xcp_get_charge_state(void)
+{
+	/* TODO */
+	return 0;
+}
+
+uint8_t xcp_get_diag_cmd(uint8_t *cmd)
+{
+	/* TODO */
+	return 0;
+}
+
+uint8_t xcp_send_diag_data(uint8_t *data)
+{
+	/* TODO */
+	return 0;
+}
+
+
+uint8_t xcp_get_can_state(void)
+{
+	uint32_t device_id0;
+	/* get can status */
+	if(tcan_mode == TCAN4x5x_DEVICE_MODE_SLEEP || is_tcan_busoff == 1)
+	{
+		
+return CAN_STATUS_CAN_BUS_ERROR;
+	}
+	/* get spi status */
+	device_id0 = AHB_READ_32(REG_SPI_DEVICE_ID0);
+	if( device_id0 !=  0x4E414354)
+	{
+		return CAN_STATUS_SPI_ERROR;
+	}
+	
+	return CAN_STATUS_NORMAL;
+}
+
 void can_task_sleep(uint32_t ms)
 {
 #ifdef TCAN_PLATFORM_RTT
@@ -307,7 +356,7 @@ void reset_tcan4550(void)
 #endif	
 }
 
-static void tcan4550_thread_entry(void* parameter)
+void tcan4550_thread_entry(void* parameter)
 {
 	spi_init();
 	test_spi();
@@ -394,6 +443,13 @@ static void tcan4550_thread_entry(void* parameter)
 			if (dev_ir.SPIERR)                                  // If the SPIERR flag is set
 			    TCAN4x5x_Device_ClearSPIERR();                  // Clear the SPIERR flag
 
+			if(mcan_ir.BO)
+			{
+				tcan_dbg_raw("BUS OFF \n");
+				TCAN4x5x_MCAN_ClearInterrupts(&mcan_ir);
+				is_tcan_busoff = 1;
+			}
+			
 			if (mcan_ir.RF0N)									// If a new message in RX FIFO 0
 			{
 				TCAN4x5x_MCAN_RX_Header MsgHeader = {0};		// Initialize to 0 or you'll get garbage
@@ -426,7 +482,7 @@ static void tcan4550_thread_entry(void* parameter)
 			{
 				sleep_count++;
 			}
-			if((sleep_count == 100*60*1) && (tcan_mode == TCAN4x5x_DEVICE_MODE_NORMAL))
+			if((sleep_count == 100*60*10) && (tcan_mode == TCAN4x5x_DEVICE_MODE_NORMAL))
 			{
 				tcan_dbg_raw("tcan entry sleep mode.\n");
 				/* entry sleep mode */
