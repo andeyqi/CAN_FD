@@ -13,6 +13,7 @@ extern uint8_t xcp_get_cc(void);
 extern uint8_t xcp_get_charge_state(void);
 extern uint8_t xcp_get_diag_cmd(uint8_t *cmd);
 extern uint8_t xcp_send_diag_data(uint8_t *data);
+extern uint8_t xcp_send_can_msg(uint16_t id,uint8_t * data);
 
 /* can irq handle function */
 extern void gpio_can_irq_ind(void *args);

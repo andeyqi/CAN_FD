@@ -11,6 +11,8 @@
 #endif
 #include "TCAN4550.h"
 #include "include/can.h"
+#include <string.h>
+
 
 volatile uint8_t TCAN_Int_Cnt = 0;                  // A variable used to keep track of interrupts the MCAN Interrupt pin
 volatile uint8_t TCAN_is_wakeup = 0;
@@ -319,8 +321,7 @@ uint8_t xcp_get_can_state(void)
     /* get can status */
     if(tcan_mode == TCAN4x5x_DEVICE_MODE_SLEEP || is_tcan_busoff == 1)
     {
-        
-return CAN_STATUS_CAN_BUS_ERROR;
+        return CAN_STATUS_CAN_BUS_ERROR;
     }
     /* get spi status */
     device_id0 = AHB_READ_32(REG_SPI_DEVICE_ID0);
@@ -330,6 +331,30 @@ return CAN_STATUS_CAN_BUS_ERROR;
     }
     
     return CAN_STATUS_NORMAL;
+}
+
+uint8_t xcp_send_can_msg(uint16_t id,uint8_t * data)
+{
+    /* Define the CAN message we want to send*/
+    TCAN4x5x_MCAN_TX_Header header = {0};           // Remember to initialize to 0, or you'll get random garbage!
+    uint8_t data_payload[8] = {0};     // Define the data payload
+    if(NULL == data)
+        return 1;
+    memcpy(data_payload,data,8);
+    header.DLC = MCAN_DLC_8B;                       // Set the DLC to be equal to or less than the data payload (it is ok to pass a 64 byte data array into the WriteTXFIFO function if your DLC is 8 bytes, only the first 8 bytes will be read)
+    header.ID = id;                              // Set the ID
+    header.FDF = 0;                                 // CAN FD frame enabled
+    header.BRS = 0;                                 // Bit rate switch enabled
+    header.EFC = 0;
+    header.MM  = 0;
+    header.RTR = 0;
+    header.XTD = 0;                                 // We are not using an extended ID in this example
+    header.ESI = 0;                                 // Error state indicator
+    
+    //retv = TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data); // This function actually writes the header and data payload to the TCAN's MRAM in the specified TX queue number. It returns the bit necessary to write to TXBAR,
+    TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data_payload);                                               // but does not necessarily require you to use it. In this example, we won't, so that we can send the data queued up at a later point.  
+    TCAN4x5x_MCAN_TransmitBufferContents(0);    // Now we can send the TX FIFO element 0 data that we had queued up earlier but didn't send.    
+    return 0;
 }
 
 void can_task_sleep(uint32_t ms)
@@ -362,65 +387,8 @@ void tcan4550_thread_entry(void* parameter)
     can_gpio_init();
     
     Init_CAN();
-#if 0
-    /* Define the CAN message we want to send*/
-    TCAN4x5x_MCAN_TX_Header header = {0};           // Remember to initialize to 0, or you'll get random garbage!
-    uint8_t data[8] = {0x11,0x22,0x33,0x44,0x55, 0x66, 0x77, 0x88};     // Define the data payload
-    header.DLC = MCAN_DLC_8B;                       // Set the DLC to be equal to or less than the data payload (it is ok to pass a 64 byte data array into the WriteTXFIFO function if your DLC is 8 bytes, only the first 8 bytes will be read)
-    header.ID = 0x100;                              // Set the ID
-    header.FDF = 0;                                 // CAN FD frame enabled
-    header.BRS = 0;                                 // Bit rate switch enabled
-    header.EFC = 0;
-    header.MM  = 0;
-    header.RTR = 0;
-    header.XTD = 0;                                 // We are not using an extended ID in this example
-    header.ESI = 0;                                 // Error state indicator
-
-
-    //retv = TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data); // This function actually writes the header and data payload to the TCAN's MRAM in the specified TX queue number. It returns the bit necessary to write to TXBAR,
-    tcan_dbg_raw("%d\n",TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data));                                             // but does not necessarily require you to use it. In this example, we won't, so that we can send the data queued up at a later point.
-
-
-    retv = TCAN4x5x_MCAN_TransmitBufferContents(0);     // Now we can send the TX FIFO element 0 data that we had queued up earlier but didn't send.
-    if(retv == false)
-    {
-        tcan_dbg_raw("13\n");
-    }
-#endif
     while (1)
     {
-#if 0    
-        TCAN4x5x_Device_Interrupts dev_ir = {0};                    // Setup a new MCAN IR object for easy interrupt checking
-        TCAN4x5x_Device_ReadInterrupts(&dev_ir);                    // Request that the struct be updated with current DEVICE (not MCAN) interrupt values
-        if (dev_ir.word)                                           // If the Power On interrupt flag is set
-            TCAN4x5x_Device_ClearInterrupts(&dev_ir);
-        TCAN4x5x_MCAN_TransmitBufferContents(0);
-#endif      
-#if  0 
-        /* Define the CAN message we want to send*/
-        TCAN4x5x_MCAN_TX_Header header = {0};           // Remember to initialize to 0, or you'll get random garbage!
-        uint8_t data[8] = {0x55, 0x66, 0x77, 0x88};     // Define the data payload
-        header.DLC = MCAN_DLC_8B;                       // Set the DLC to be equal to or less than the data payload (it is ok to pass a 64 byte data array into the WriteTXFIFO function if your DLC is 8 bytes, only the first 8 bytes will be read)
-        header.ID = 0x100;                              // Set the ID
-        header.FDF = 0;                                 // CAN FD frame enabled
-        header.BRS = 0;                                 // Bit rate switch enabled
-        header.EFC = 0;
-        header.MM  = 0;
-        header.RTR = 0;
-        header.XTD = 0;                                 // We are not using an extended ID in this example
-        header.ESI = 0;                                 // Error state indicator
-
-
-        //retv = TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data); // This function actually writes the header and data payload to the TCAN's MRAM in the specified TX queue number. It returns the bit necessary to write to TXBAR,
-        rt_kprintf("%d\n",TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data));                                               // but does not necessarily require you to use it. In this example, we won't, so that we can send the data queued up at a later point.
-    
-
-        retv = TCAN4x5x_MCAN_TransmitBufferContents(0);     // Now we can send the TX FIFO element 0 data that we had queued up earlier but didn't send.
-        if(retv == false)
-        {
-            rt_kprintf("13\n");
-        }
-#endif
         if (TCAN_is_wakeup)
         {
             /* reset tcan4550 */
@@ -526,24 +494,12 @@ MSH_CMD_EXPORT(tcandump, tcandump sample: tcandump <data>);
 
 static void tcansend(int argc, char**argv)
 {
-    static uint8_t msgid = 0x00;
-    /* Define the CAN message we want to send*/
-    TCAN4x5x_MCAN_TX_Header header = {0};           // Remember to initialize to 0, or you'll get random garbage!
-    uint8_t data[8] = {0x55, 0x66, 0x77, 0x88};     // Define the data payload
-    header.DLC = MCAN_DLC_8B;                       // Set the DLC to be equal to or less than the data payload (it is ok to pass a 64 byte data array into the WriteTXFIFO function if your DLC is 8 bytes, only the first 8 bytes will be read)
-    header.ID = msgid;                              // Set the ID
-    header.FDF = 0;                                 // CAN FD frame enabled
-    header.BRS = 0;                                 // Bit rate switch enabled
-    header.EFC = 0;
-    header.MM  = 0;
-    header.RTR = 0;
-    header.XTD = 0;                                 // We are not using an extended ID in this example
-    header.ESI = 0;                                 // Error state indicator
+    static uint16_t msgid = 0x00;
+          // Remember to initialize to 0, or you'll get random garbage!
+    uint8_t data[8] = {0x11,0x22,0x33,0x44,0x55, 0x66, 0x77, 0x88};     // Define the data payload                               // Error state indicator
     
     msgid++;
-    //retv = TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data); // This function actually writes the header and data payload to the TCAN's MRAM in the specified TX queue number. It returns the bit necessary to write to TXBAR,
-    rt_kprintf("%d\n",TCAN4x5x_MCAN_WriteTXBuffer(0, &header, data));                                               // but does not necessarily require you to use it. In this example, we won't, so that we can send the data queued up at a later point.  
-    TCAN4x5x_MCAN_TransmitBufferContents(0);    // Now we can send the TX FIFO element 0 data that we had queued up earlier but didn't send.
+    xcp_send_can_msg(msgid, data);
 }
 
 MSH_CMD_EXPORT(tcansend, tcansend sample: tcansend <data>);
