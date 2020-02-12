@@ -3,9 +3,9 @@
 
 #include  <stdint.h>
 
-#define CAN_STATUS_NORMAL			(0)
-#define CAN_STATUS_SPI_ERROR		(1)
-#define CAN_STATUS_CAN_BUS_ERROR	(2)
+#define CAN_STATUS_NORMAL           (0)
+#define CAN_STATUS_SPI_ERROR        (1)
+#define CAN_STATUS_CAN_BUS_ERROR    (2)
 
 /* can extern api */
 extern uint8_t xcp_get_can_state(void);

@@ -72,24 +72,24 @@ AHB_WRITE_32(uint16_t address, uint32_t data)
     AHB_WRITE_BURST_END();
 #endif
 #ifdef TCAN_PLATFORM_RTT
-	uint8_t sendsize;
-	static uint8_t sendbuff[8];
-	static uint8_t recvbuff[8] = {0};
-	sendbuff[0] = AHB_WRITE_OPCODE;
-	sendbuff[1] = (address&0xff00) >> 8;;
-	sendbuff[2] = address&0xff;
-	sendbuff[3] = 1;
-	sendbuff[4] = (data&0xff000000)>>24;
-	sendbuff[5] = (data&0xff0000)>>16;
-	sendbuff[6] = (data&0xff00)>>8;
-	sendbuff[7] = data&0xff;
-	
-	sendsize = rt_spi_transfer(spi_dev_com,(void *)sendbuff,recvbuff,8);
-	if(sendsize != 8)
-		rt_kprintf("SPI BUS send data len is %d\n",sendsize);
-	//else if(recvbuff[0] != 0)
-	//	rt_kprintf("recv [0] %x\n",recvbuff[0]);
-#endif	
+    uint8_t sendsize;
+    static uint8_t sendbuff[8];
+    static uint8_t recvbuff[8] = {0};
+    sendbuff[0] = AHB_WRITE_OPCODE;
+    sendbuff[1] = (address&0xff00) >> 8;;
+    sendbuff[2] = address&0xff;
+    sendbuff[3] = 1;
+    sendbuff[4] = (data&0xff000000)>>24;
+    sendbuff[5] = (data&0xff0000)>>16;
+    sendbuff[6] = (data&0xff00)>>8;
+    sendbuff[7] = data&0xff;
+    
+    sendsize = rt_spi_transfer(spi_dev_com,(void *)sendbuff,recvbuff,8);
+    if(sendsize != 8)
+        rt_kprintf("SPI BUS send data len is %d\n",sendsize);
+    //else if(recvbuff[0] != 0)
+    //  rt_kprintf("recv [0] %x\n",recvbuff[0]);
+#endif  
 }
 
 
@@ -113,27 +113,27 @@ AHB_READ_32(uint16_t address)
     return returnData;
 #endif
 #ifdef TCAN_PLATFORM_RTT
-	uint32_t returnData;
-	uint8_t sendsize;
-	static uint8_t sendbuff[8];
-	static uint8_t recvbuff[8] = {0};
-	sendbuff[0] = AHB_READ_OPCODE;
-	sendbuff[1] = (address&0xff00) >> 8;
-	sendbuff[2] = address&0xff;
-	sendbuff[3] = 1;
-	sendbuff[4] = 0x00;
-	sendbuff[5] = 0x00;
-	sendbuff[6] = 0x00;
-	sendbuff[7] = 0x00;
-	
-	sendsize = rt_spi_transfer(spi_dev_com,(void *)sendbuff,recvbuff,8);
-	//rt_kprintf("SPI BUS send data len is %d\n",sendsize);
-	if(sendsize != 8)
-		rt_kprintf("SPI BUS send data error len is %d\n",sendsize);
+    uint32_t returnData;
+    uint8_t sendsize;
+    static uint8_t sendbuff[8];
+    static uint8_t recvbuff[8] = {0};
+    sendbuff[0] = AHB_READ_OPCODE;
+    sendbuff[1] = (address&0xff00) >> 8;
+    sendbuff[2] = address&0xff;
+    sendbuff[3] = 1;
+    sendbuff[4] = 0x00;
+    sendbuff[5] = 0x00;
+    sendbuff[6] = 0x00;
+    sendbuff[7] = 0x00;
+    
+    sendsize = rt_spi_transfer(spi_dev_com,(void *)sendbuff,recvbuff,8);
+    //rt_kprintf("SPI BUS send data len is %d\n",sendsize);
+    if(sendsize != 8)
+        rt_kprintf("SPI BUS send data error len is %d\n",sendsize);
     returnData = (((uint32_t)recvbuff[4]) << 24) | (((uint32_t)recvbuff[5] << 16)) | (((uint32_t)recvbuff[6]) << 8) | recvbuff[7];
 
-	return returnData;
-#endif	
+    return returnData;
+#endif  
 }
 
 
@@ -167,13 +167,13 @@ AHB_WRITE_BURST_START(uint16_t address, uint8_t words)
     EUSCI_B_SPI_transmitData(SPI_HW_ADDR, words);
 #endif
 #ifdef TCAN_PLATFORM_RTT
-	burst_write_index = 0;
+    burst_write_index = 0;
 
-	burst_write_send_buff[burst_write_index++] = AHB_WRITE_OPCODE;
-	burst_write_send_buff[burst_write_index++] = (address&0xff00) >> 8;
-	burst_write_send_buff[burst_write_index++] = (address&0xff);
-	burst_write_send_buff[burst_write_index++] = words;
-#endif	
+    burst_write_send_buff[burst_write_index++] = AHB_WRITE_OPCODE;
+    burst_write_send_buff[burst_write_index++] = (address&0xff00) >> 8;
+    burst_write_send_buff[burst_write_index++] = (address&0xff);
+    burst_write_send_buff[burst_write_index++] = words;
+#endif  
 }
 
 
@@ -199,11 +199,11 @@ AHB_WRITE_BURST_WRITE(uint32_t data)
     EUSCI_B_SPI_transmitData(SPI_HW_ADDR, HWREG8(&data));
 #endif
 #ifdef TCAN_PLATFORM_RTT
-	burst_write_send_buff[burst_write_index++] = (data&0xff000000)>>24;
-	burst_write_send_buff[burst_write_index++] = (data&0xff0000)>>16;
-	burst_write_send_buff[burst_write_index++] = (data&0xff00)>>8;
-	burst_write_send_buff[burst_write_index++] = data&0xff;
-#endif	
+    burst_write_send_buff[burst_write_index++] = (data&0xff000000)>>24;
+    burst_write_send_buff[burst_write_index++] = (data&0xff0000)>>16;
+    burst_write_send_buff[burst_write_index++] = (data&0xff00)>>8;
+    burst_write_send_buff[burst_write_index++] = data&0xff;
+#endif  
 }
 
 
@@ -222,17 +222,17 @@ AHB_WRITE_BURST_END(void)
 #endif
 #ifdef TCAN_PLATFORM_RTT
 
-	uint8_t sendsize;
+    uint8_t sendsize;
 
-	sendsize = rt_spi_transfer(spi_dev_com,(void *)burst_write_send_buff,burst_write_recv_buff,burst_write_index);
-	//rt_kprintf("SPI BUS send data len is %d\n",sendsize);
+    sendsize = rt_spi_transfer(spi_dev_com,(void *)burst_write_send_buff,burst_write_recv_buff,burst_write_index);
+    //rt_kprintf("SPI BUS send data len is %d\n",sendsize);
 
-	if(sendsize != burst_write_index)
-		rt_kprintf("SPI BUS send data len is %d\n",sendsize);
-	burst_write_index = 0;
-	memset(burst_write_send_buff,0,sizeof(burst_write_send_buff));
-	memset(burst_write_recv_buff,0,sizeof(burst_write_recv_buff));
-#endif	
+    if(sendsize != burst_write_index)
+        rt_kprintf("SPI BUS send data len is %d\n",sendsize);
+    burst_write_index = 0;
+    memset(burst_write_send_buff,0,sizeof(burst_write_send_buff));
+    memset(burst_write_recv_buff,0,sizeof(burst_write_recv_buff));
+#endif  
 }
 
 
@@ -265,15 +265,15 @@ AHB_READ_BURST_START(uint16_t address, uint8_t words)
 #endif
 #ifdef TCAN_PLATFORM_RTT
 
-	uint8_t sendsize;
+    uint8_t sendsize;
 
-	burst_read_send_buff[0] = AHB_READ_OPCODE;
-	burst_read_send_buff[1] = (address&0xff00) >> 8;
-	burst_read_send_buff[2] = address&0xff;
-	burst_read_send_buff[3] = words;
-	burst_read_index = 1;
-	sendsize = rt_spi_transfer(spi_dev_com,(void *)burst_read_send_buff,burst_read_recv_buff,(words+1)*4);
-	//rt_kprintf("BRU RD send data len is %d\n",sendsize);
+    burst_read_send_buff[0] = AHB_READ_OPCODE;
+    burst_read_send_buff[1] = (address&0xff00) >> 8;
+    burst_read_send_buff[2] = address&0xff;
+    burst_read_send_buff[3] = words;
+    burst_read_index = 1;
+    sendsize = rt_spi_transfer(spi_dev_com,(void *)burst_read_send_buff,burst_read_recv_buff,(words+1)*4);
+    //rt_kprintf("BRU RD send data len is %d\n",sendsize);
 #endif
 }
 
@@ -321,12 +321,12 @@ AHB_READ_BURST_READ(void)
 #endif
 #ifdef TCAN_PLATFORM_RTT
 
-	uint32_t returnData;
-	returnData = (((uint32_t)burst_read_recv_buff[4*burst_read_index]) << 24) | (((uint32_t)burst_read_recv_buff[(4*burst_read_index)+1] << 16)) | (((uint32_t)burst_read_recv_buff[(4*burst_read_index)+2]) << 8) | burst_read_recv_buff[(4*burst_read_index)+3];
+    uint32_t returnData;
+    returnData = (((uint32_t)burst_read_recv_buff[4*burst_read_index]) << 24) | (((uint32_t)burst_read_recv_buff[(4*burst_read_index)+1] << 16)) | (((uint32_t)burst_read_recv_buff[(4*burst_read_index)+2]) << 8) | burst_read_recv_buff[(4*burst_read_index)+3];
 
-	burst_read_index++;
-	return returnData;
-#endif	
+    burst_read_index++;
+    return returnData;
+#endif  
 }
 
 
@@ -345,8 +345,8 @@ AHB_READ_BURST_END(void)
 #endif
 #ifdef TCAN_PLATFORM_RTT
 
-	burst_read_index = 1;
-	memset(burst_read_send_buff,0,sizeof(burst_read_send_buff));
-	memset(burst_read_recv_buff,0,sizeof(burst_read_recv_buff));
-#endif	
+    burst_read_index = 1;
+    memset(burst_read_send_buff,0,sizeof(burst_read_send_buff));
+    memset(burst_read_recv_buff,0,sizeof(burst_read_recv_buff));
+#endif  
 }

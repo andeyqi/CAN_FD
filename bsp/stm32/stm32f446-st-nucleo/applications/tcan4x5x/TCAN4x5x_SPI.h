@@ -5,8 +5,8 @@
  *
  *
  * Change list:
- * 	- 1.1 (6/6/2018)
- * 		- Updated pinout for boosterback support
+ *  - 1.1 (6/6/2018)
+ *      - Updated pinout for boosterback support
  *
  * Copyright (c) 2019 Texas Instruments Incorporated.  All rights reserved.
  * Software License Agreement
@@ -47,12 +47,12 @@
 #include <stdint.h>
 
 // Defines for GPIO port and pin for MSP430 SPI port.
-#define SPI_CS_GPIO_PORT				GPIO_PORT_P2
-#define SPI_CS_GPIO_PIN					GPIO_PIN5
-#define SPI_HW_ADDR						EUSCI_B0_BASE
+#define SPI_CS_GPIO_PORT                GPIO_PORT_P2
+#define SPI_CS_GPIO_PIN                 GPIO_PIN5
+#define SPI_HW_ADDR                     EUSCI_B0_BASE
 // MSP430 Specific commands to proper sequencing on the SPI bus
-#define WAIT_FOR_TRANSMIT				while (!(HWREG16(SPI_HW_ADDR + OFS_UCBxIFG) & UCTXIFG))
-#define WAIT_FOR_IDLE					while ((HWREG16(SPI_HW_ADDR + OFS_UCBxSTATW) & UCBUSY))
+#define WAIT_FOR_TRANSMIT               while (!(HWREG16(SPI_HW_ADDR + OFS_UCBxIFG) & UCTXIFG))
+#define WAIT_FOR_IDLE                   while ((HWREG16(SPI_HW_ADDR + OFS_UCBxSTATW) & UCBUSY))
 
 
 //------------------------------------------------------------------------
@@ -65,7 +65,7 @@
 
 
 //------------------------------------------------------------------------
-//							Write Functions
+//                          Write Functions
 //------------------------------------------------------------------------
 
 void AHB_WRITE_32(uint16_t address, uint32_t data);
@@ -75,7 +75,7 @@ void AHB_WRITE_BURST_END(void);
 
 
 //--------------------------------------------------------------------------
-//							Read Functions
+//                          Read Functions
 //--------------------------------------------------------------------------
 uint32_t AHB_READ_32(uint16_t address);
 void AHB_READ_BURST_START(uint16_t address, uint8_t words);

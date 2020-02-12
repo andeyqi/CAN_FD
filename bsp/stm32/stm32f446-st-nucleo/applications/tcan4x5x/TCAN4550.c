@@ -13,11 +13,11 @@
  *
  *  1.2.0 (5/1/2019)
  *      - Added the MCAN_ConfigureGlobalFilter function for changing default packet behavior
- *	    - Added a define to allow caching of MCAN configuration registers to reduce the number of SPI reads
- *	    - Added a FIFO fill level checker to the MCAN_ReadNextFIFO method to exit if there is no new element to read
- *	    - Added a read function for SID and XID filters
- *	    - Added a SPIERR clear function
- *	    
+ *      - Added a define to allow caching of MCAN configuration registers to reduce the number of SPI reads
+ *      - Added a FIFO fill level checker to the MCAN_ReadNextFIFO method to exit if there is no new element to read
+ *      - Added a read function for SID and XID filters
+ *      - Added a SPIERR clear function
+ *      
  *  1.1.1 (6/12/2018)
  *      - Minor typo correction for the ConfigureNominalTiming_Simple() function
  *
@@ -96,7 +96,7 @@ TCAN4x5x_MCAN_EnableProtectedRegisters(void)
 
         if ((readValue & (REG_BITS_MCAN_CCCR_CCE | REG_BITS_MCAN_CCCR_INIT)) == (REG_BITS_MCAN_CCCR_CCE | REG_BITS_MCAN_CCCR_INIT))
             return true;
-        else if (i == 1)		// Ran out of tries, give up
+        else if (i == 1)        // Ran out of tries, give up
             return false;
     }
     return true;
@@ -123,7 +123,7 @@ TCAN4x5x_MCAN_DisableProtectedRegisters(void)
     // Try up to 5 times to unset the CCCR register, if not, then fail config, since we need these bits set to configure the device.
     for (i = 5; i > 0; i--)
     {
-        AHB_WRITE_32(REG_MCAN_CCCR, (readValue & ~(REG_BITS_MCAN_CCCR_CSA | REG_BITS_MCAN_CCCR_CSR | REG_BITS_MCAN_CCCR_CCE | REG_BITS_MCAN_CCCR_INIT)));	// Unset these bits
+        AHB_WRITE_32(REG_MCAN_CCCR, (readValue & ~(REG_BITS_MCAN_CCCR_CSA | REG_BITS_MCAN_CCCR_CSR | REG_BITS_MCAN_CCCR_CCE | REG_BITS_MCAN_CCCR_INIT)));   // Unset these bits
         readValue = AHB_READ_32(REG_MCAN_CCCR);
 
         if ((readValue & REG_BITS_MCAN_CCCR_CCE) == 0)
@@ -154,7 +154,7 @@ TCAN4x5x_MCAN_ConfigureCCCRRegister(TCAN4x5x_MCAN_CCCR_Config *cccrConfig)
 
 
     value = cccrConfig->word;
-    value &= ~(REG_BITS_MCAN_CCCR_RESERVED_MASK | REG_BITS_MCAN_CCCR_CSA | REG_BITS_MCAN_CCCR_CCE | REG_BITS_MCAN_CCCR_INIT);		// Bitwise AND to get the valid bits (ignore reserved bits and the CCE and INIT)
+    value &= ~(REG_BITS_MCAN_CCCR_RESERVED_MASK | REG_BITS_MCAN_CCCR_CSA | REG_BITS_MCAN_CCCR_CCE | REG_BITS_MCAN_CCCR_INIT);       // Bitwise AND to get the valid bits (ignore reserved bits and the CCE and INIT)
 
     // If we made it here, we can update the value so that our protected write stays enabled
     value |= (REG_BITS_MCAN_CCCR_INIT | REG_BITS_MCAN_CCCR_CCE);
@@ -288,7 +288,7 @@ TCAN4x5x_MCAN_ConfigureDataTiming_Simple(TCAN4x5x_MCAN_Data_Timing_Simple *dataT
     else if (tempValue == 0)
         tempValue = 1;
 
-    writeValue = ((uint32_t)(tempValue - 1)) << 16;		// Subtract 1 because MCAN expects 1 less than actual value
+    writeValue = ((uint32_t)(tempValue - 1)) << 16;     // Subtract 1 because MCAN expects 1 less than actual value
 
     // Check Tq before sample point is within valid range of 2-33
     tempValue = dataTiming->DataTqBeforeSamplePoint;
@@ -297,8 +297,8 @@ TCAN4x5x_MCAN_ConfigureDataTiming_Simple(TCAN4x5x_MCAN_Data_Timing_Simple *dataT
     else if (tempValue < 2)
         tempValue = 2;
 
-    writeValue |= ((uint32_t)(tempValue - 2)) << 8;		// Subtract 2 for the Sync bit and because MCAN expects 1 less than actual
-    TDCOWriteValue = (uint32_t)(tempValue - 1) << 8;	// Subtract 1 to make secondary sample point match primary. We take the sync bit out. See below note as to why
+    writeValue |= ((uint32_t)(tempValue - 2)) << 8;     // Subtract 2 for the Sync bit and because MCAN expects 1 less than actual
+    TDCOWriteValue = (uint32_t)(tempValue - 1) << 8;    // Subtract 1 to make secondary sample point match primary. We take the sync bit out. See below note as to why
     // Check Tq after the sample point is within valid range of 1-16
     tempValue = dataTiming->DataTqAfterSamplePoint;
     if (tempValue > 16)
@@ -306,15 +306,15 @@ TCAN4x5x_MCAN_ConfigureDataTiming_Simple(TCAN4x5x_MCAN_Data_Timing_Simple *dataT
     else if (tempValue == 0)
         tempValue = 1;
 
-    writeValue |= ((uint32_t)(tempValue - 1)) << 4;		// Subtract 1 because MCAN expects 1 less than actual value
+    writeValue |= ((uint32_t)(tempValue - 1)) << 4;     // Subtract 1 because MCAN expects 1 less than actual value
 
     //Copy SJW from tq after sample point in most cases
-    writeValue |= ((uint32_t)(tempValue - 1));			// Subtract 1 because MCAN expects 1 less than actual value
+    writeValue |= ((uint32_t)(tempValue - 1));          // Subtract 1 because MCAN expects 1 less than actual value
 
     // NOTE: In most cases, you want to enable Transceiver Delay Compensation Offset and set it to 1 more than what's in the DTSEG1 register in MCAN.
     // Doing this ensures that the secondary sample point is the same as the primary sample point
     writeValue |= REG_BITS_MCAN_DBTP_TDC_EN;
-    AHB_WRITE_32(REG_MCAN_DBTP, writeValue);				// Write the value to the DBTP register
+    AHB_WRITE_32(REG_MCAN_DBTP, writeValue);                // Write the value to the DBTP register
 
 #ifdef TCAN4x5x_MCAN_VERIFY_CONFIGURATION_WRITES
     // Check to see if the write was successful.
@@ -467,7 +467,7 @@ TCAN4x5x_MCAN_ConfigureNominalTiming_Simple(TCAN4x5x_MCAN_Nominal_Timing_Simple 
         tempValue = 512;
     else if (tempValue == 0)
         tempValue = 1;
-    writeValue = ((uint32_t)(tempValue - 1)) << 16;		// Subtract 1 because MCAN expects 1 less than actual value
+    writeValue = ((uint32_t)(tempValue - 1)) << 16;     // Subtract 1 because MCAN expects 1 less than actual value
 
 
     // Check that prescaler is in valid range of 2-257
@@ -476,7 +476,7 @@ TCAN4x5x_MCAN_ConfigureNominalTiming_Simple(TCAN4x5x_MCAN_Nominal_Timing_Simple 
         tempValue = 257;
     else if (tempValue < 2)
         tempValue = 2;
-    writeValue |= ((uint32_t)(tempValue - 2)) << 8;		// Subtract 2, 1 for sync, and 1 because MCAN expects 1 less than actual value
+    writeValue |= ((uint32_t)(tempValue - 2)) << 8;     // Subtract 2, 1 for sync, and 1 because MCAN expects 1 less than actual value
 
     // Check that prescaler is in valid range of 2-257
     tempValue = nomTiming->NominalTqAfterSamplePoint;
@@ -484,8 +484,8 @@ TCAN4x5x_MCAN_ConfigureNominalTiming_Simple(TCAN4x5x_MCAN_Nominal_Timing_Simple 
         tempValue = 128;
     else if (tempValue < 2)
         tempValue = 2;
-    writeValue |= ((uint32_t)(tempValue - 1));			// Subtract 1 because MCAN expects 1 less than actual value
-    writeValue |= ((uint32_t)(tempValue - 1)) << 25; 	// NSJW is made to match the MCAN after bit time value
+    writeValue |= ((uint32_t)(tempValue - 1));          // Subtract 1 because MCAN expects 1 less than actual value
+    writeValue |= ((uint32_t)(tempValue - 1)) << 25;    // NSJW is made to match the MCAN after bit time value
 
     // Write value to the NBTP register
     AHB_WRITE_32(REG_MCAN_NBTP, writeValue);
@@ -1431,7 +1431,7 @@ void
 TCAN4x5x_MCAN_ConfigureInterruptEnable(TCAN4x5x_MCAN_Interrupt_Enable *ie)
 {
     AHB_WRITE_32(REG_MCAN_IE, ie->word);
-    AHB_WRITE_32(REG_MCAN_ILE, REG_BITS_MCAN_ILE_EINT0);		// This is necessary to enable the MCAN Int mux to the output nINT pin
+    AHB_WRITE_32(REG_MCAN_ILE, REG_BITS_MCAN_ILE_EINT0);        // This is necessary to enable the MCAN Int mux to the output nINT pin
 }
 
 
@@ -1639,8 +1639,8 @@ TCAN4x5x_Device_ConfigureInterruptEnable(TCAN4x5x_Device_Interrupt_Enable *ie)
     // Check to see if the write was successful.
     uint32_t readValue = AHB_READ_32(REG_DEV_IE);       // Read value
     readValue &= REG_BITS_DEVICE_IE_MASK;               // Apply mask to ignore reserved
-	//rt_kprintf("read value %x  cmp value %x\n",readValue,ie->word & REG_BITS_DEVICE_IE_MASK);
-	if (readValue != (ie->word & REG_BITS_DEVICE_IE_MASK))
+    //rt_kprintf("read value %x  cmp value %x\n",readValue,ie->word & REG_BITS_DEVICE_IE_MASK);
+    if (readValue != (ie->word & REG_BITS_DEVICE_IE_MASK))
         return false;
 #endif
     return true;
@@ -1731,7 +1731,7 @@ bool
 TCAN4x5x_Device_EnableTestMode(TCAN4x5x_Device_Test_Mode_Enum modeDefine)
 {
     uint32_t readWriteValue = AHB_READ_32(REG_DEV_MODES_AND_PINS);
-    readWriteValue &= ~REG_BITS_DEVICE_MODE_TESTMODE_MASK;					// Clear the bits that we are setting
+    readWriteValue &= ~REG_BITS_DEVICE_MODE_TESTMODE_MASK;                  // Clear the bits that we are setting
 
     // Set the appropriate bits depending on the passed in value
     switch (modeDefine)
@@ -1748,9 +1748,9 @@ TCAN4x5x_Device_EnableTestMode(TCAN4x5x_Device_Test_Mode_Enum modeDefine)
             readWriteValue |= REG_BITS_DEVICE_MODE_TESTMODE_PHY | REG_BITS_DEVICE_MODE_TESTMODE_EN;
             break;
 
-        default: return false;	    									// If an invalid value was passed, then we will return fail
+        default: return false;                                          // If an invalid value was passed, then we will return fail
     }
-    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, readWriteValue);				// Write the updated values
+    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, readWriteValue);               // Write the updated values
 
 #ifdef TCAN4x5x_DEVICE_VERIFY_CONFIGURATION_WRITES
     // Check to see if the write was successful.
@@ -1770,8 +1770,8 @@ bool
 TCAN4x5x_Device_DisableTestMode(void)
 {
     uint32_t readWriteValue = AHB_READ_32(REG_DEV_MODES_AND_PINS);
-    readWriteValue &= ~(REG_BITS_DEVICE_MODE_TESTMODE_MASK | REG_BITS_DEVICE_MODE_TESTMODE_ENMASK);	// Clear the bits
-    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, readWriteValue);				// Write the updated values
+    readWriteValue &= ~(REG_BITS_DEVICE_MODE_TESTMODE_MASK | REG_BITS_DEVICE_MODE_TESTMODE_ENMASK); // Clear the bits
+    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, readWriteValue);               // Write the updated values
 
 #ifdef TCAN4x5x_DEVICE_VERIFY_CONFIGURATION_WRITES
     // Check to see if the write was successful.
@@ -1817,7 +1817,7 @@ bool
 TCAN4x5x_WDT_Configure(TCAN4x5x_WDT_Timer_Enum WDTtimeout)
 {
     uint32_t readWriteValue = AHB_READ_32(REG_DEV_MODES_AND_PINS);
-    readWriteValue &= ~REG_BITS_DEVICE_MODE_WD_TIMER_MASK;					// Clear the bits that we are setting
+    readWriteValue &= ~REG_BITS_DEVICE_MODE_WD_TIMER_MASK;                  // Clear the bits that we are setting
 
     // Set the appropriate bits depending on the passed in value
     switch (WDTtimeout)
@@ -1838,9 +1838,9 @@ TCAN4x5x_WDT_Configure(TCAN4x5x_WDT_Timer_Enum WDTtimeout)
             readWriteValue |= REG_BITS_DEVICE_MODE_WD_TIMER_6S;
             break;
 
-        default: return false;									// If an invalid value was passed, then we will return fail
+        default: return false;                                  // If an invalid value was passed, then we will return fail
     }
-    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, readWriteValue);				// Write the updated values
+    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, readWriteValue);               // Write the updated values
 
 #ifdef TCAN4x5x_DEVICE_VERIFY_CONFIGURATION_WRITES
     // Check to see if the write was successful.
@@ -1876,7 +1876,7 @@ TCAN4x5x_WDT_Read(void)
         case REG_BITS_DEVICE_MODE_WD_TIMER_6S:
             return TCAN4x5x_WDT_6S;
 
-        default: return TCAN4x5x_WDT_60MS;									// If an invalid value was passed, then we will return the POR default
+        default: return TCAN4x5x_WDT_60MS;                                  // If an invalid value was passed, then we will return the POR default
     }
 }
 
@@ -1890,7 +1890,7 @@ bool
 TCAN4x5x_WDT_Enable(void)
 {
     uint32_t readWriteValue = AHB_READ_32(REG_DEV_MODES_AND_PINS) | REG_BITS_DEVICE_MODE_WDT_EN;
-    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, readWriteValue);		// Enable the watch dog timer
+    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, readWriteValue);       // Enable the watch dog timer
 
 #ifdef TCAN4x5x_DEVICE_VERIFY_CONFIGURATION_WRITES
     // Check to see if the write was successful.
@@ -1911,8 +1911,8 @@ bool
 TCAN4x5x_WDT_Disable(void)
 {
     uint32_t writeValue = AHB_READ_32(REG_DEV_MODES_AND_PINS);
-    writeValue &= ~REG_BITS_DEVICE_MODE_WDT_EN;					// Clear the EN bit
-    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, writeValue);			// Disable the watch dog timer
+    writeValue &= ~REG_BITS_DEVICE_MODE_WDT_EN;                 // Clear the EN bit
+    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, writeValue);           // Disable the watch dog timer
 
 #ifdef TCAN4x5x_DEVICE_VERIFY_CONFIGURATION_WRITES
     // Check to see if the write was successful.
@@ -1931,5 +1931,5 @@ TCAN4x5x_WDT_Reset(void)
 {
     uint32_t writeValue = AHB_READ_32(REG_DEV_MODES_AND_PINS);
     writeValue |= REG_BITS_DEVICE_MODE_WDT_RESET_BIT;
-    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, writeValue);		// Reset the watch dog timer
+    AHB_WRITE_32(REG_DEV_MODES_AND_PINS, writeValue);       // Reset the watch dog timer
 }
