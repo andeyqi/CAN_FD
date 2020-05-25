@@ -84,8 +84,8 @@ void Init_CAN(void)
     TCAN4x5x_MCAN_Global_Filter_Configuration gfc = {0};
     gfc.RRFE = 1;                                               // Reject remote frames (TCAN4x5x doesn't support this)
     gfc.RRFS = 1;                                               // Reject remote frames (TCAN4x5x doesn't support this)
-    gfc.ANFE = TCAN4x5x_GFC_ACCEPT_INTO_RXFIFO0;                // Default behavior if incoming message doesn't match a filter is to accept into RXFIO0 for extended ID messages (29 bit IDs)
-    gfc.ANFS = TCAN4x5x_GFC_ACCEPT_INTO_RXFIFO0;                // Default behavior if incoming message doesn't match a filter is to accept into RXFIO0 for standard ID messages (11 bit IDs)
+    gfc.ANFE = TCAN4x5x_GFC_REJECT;                             // Default behavior if incoming message doesn't match a filter is to accept into RXFIO0 for extended ID messages (29 bit IDs)
+    gfc.ANFS = TCAN4x5x_GFC_REJECT;                             // Default behavior if incoming message doesn't match a filter is to accept into RXFIO0 for standard ID messages (11 bit IDs)
 
     /* ************************************************************************
      * In the next configuration block, we will set the MCAN core up to have:
@@ -98,7 +98,7 @@ void Init_CAN(void)
      *   - 2 Transmit buffers supporting up to 64 bytes of data payload
      */
     TCAN4x5x_MRAM_Config MRAMConfiguration = {0};
-    MRAMConfiguration.SIDNumElements = 1;                       // Standard ID number of elements, you MUST have a filter written to MRAM for each element defined
+    MRAMConfiguration.SIDNumElements = 2;                       // Standard ID number of elements, you MUST have a filter written to MRAM for each element defined
     MRAMConfiguration.XIDNumElements = 1;                       // Extended ID number of elements, you MUST have a filter written to MRAM for each element defined
     MRAMConfiguration.Rx0NumElements = 5;                       // RX0 Number of elements
     MRAMConfiguration.Rx0ElementSize = MRAM_64_Byte_Data;       // RX0 data payload size
@@ -162,13 +162,19 @@ void Init_CAN(void)
     TCAN4x5x_MCAN_SID_Filter SID_ID = {0};
     SID_ID.SFT = TCAN4x5x_SID_SFT_CLASSIC;                      // SFT: Standard filter type. Configured as a classic filter
     SID_ID.SFEC = TCAN4x5x_SID_SFEC_PRIORITYSTORERX0;           // Standard filter element configuration, store it in RX fifo 0 as a priority message
-    SID_ID.SFID1 = 0x055;                                       // SFID1 (Classic mode Filter)
+    SID_ID.SFID1 = 0x7ae;                                       // SFID1 (Classic mode Filter)
     SID_ID.SFID2 = 0x7FF;                                       // SFID2 (Classic mode Mask)
     ret = TCAN4x5x_MCAN_WriteSIDFilter(0, &SID_ID);                 // Write to the MRAM
     if(false == ret)
     {
         tcan_dbg_raw("8#\n");
     }
+	
+    SID_ID.SFT = TCAN4x5x_SID_SFT_CLASSIC;                      // SFT: Standard filter type. Configured as a classic filter
+    SID_ID.SFEC = TCAN4x5x_SID_SFEC_PRIORITYSTORERX0;           // Standard filter element configuration, store it in RX fifo 0 as a priority message
+    SID_ID.SFID1 = 0x7cf;                                       // SFID1 (Classic mode Filter)
+    SID_ID.SFID2 = 0x7FF;                                       // SFID2 (Classic mode Mask)
+    ret = TCAN4x5x_MCAN_WriteSIDFilter(1, &SID_ID);                 // Write to the MRAM
 
 
     /* Store ID 0x12345678 as a priority message */
